@@ -1,6 +1,7 @@
 const fs = require('fs')
 const path = require('path')
 const { BlobServiceClient } = require('@azure/storage-blob')
+const mime = require('mime-types')
 
 /**
  * Des: Connect client or create a client to get container
@@ -24,9 +25,10 @@ function getDirAllFile(dirPath) {
  * 文件上传白名单
  * @param fileName 文件名称
  * @returns {boolean} 是否为白名单路径
+ *
  */
 function checkFile(fileName) {
-  const suffixList = Array.from(new Set(['.png', '.gif', '.jpg']))
+  const suffixList = Array.from(new Set(['.png', '.gif', '.jpg', '.css', '.js']))
   return suffixList.some((item) => fileName.includes(item))
 }
 
@@ -35,25 +37,16 @@ class AzurePlugin {
     this.options = options
     this.blobClient = getContainnersClient(options)
   }
-  getFile(dir, cdnFileDir = '') {
-    const fileList = getDirAllFile(dir)
-    for (const file of fileList) {
-      const filePath = path.resolve(dir, file)
-      if (fs.lstatSync(filePath).isDirectory()) {
-        getFile(filePath, file)
-      }
-      if (checkFile(file)) {
-        this.putFileToAzure(
-          filePath,
-          file,
-          cdnFileDir === '' ? '' : `/${cdnFileDir}`
-        )
-      }
-    }
-  }
 
-  putFileToAzure(filepath, fileName, cdnFileDir = '') {
-    fs.readFile(`${filepath}`, async (error, fileContent) => {
+  /**
+   * upload file to Azure Blob storage
+   * @param filepath 本地文件的绝对路径
+   * @param fileName 文件名称
+   *
+   * */
+
+  uploadFileToAzure(filepath, fileName, cdnDir) {
+    fs.readFile(`${filepath}`, async (error) => {
       if (error) {
         console.log(
           '[File Error] ->',
@@ -64,22 +57,30 @@ class AzurePlugin {
         return
       }
       try {
-        const filePathInCDN = `${
-          this.options.prefix || ''
-        }${cdnFileDir}/${fileName}`
-        const blockBlobClient = this.blobClient.getBlockBlobClient(fileName)
-        const uploadBlobResponse = await blockBlobClient.upload(
-          fileName,
-          fileName.length
+        const blobName = cdnDir? `${cdnDir}/${fileName}`: fileName
+        const fileType = mime.contentType(fileName)
+        const blockBlobClient = this.blobClient.getBlockBlobClient(blobName)
+        const uploadBlobResponse = await blockBlobClient.uploadFile(
+          filepath,
+          { blobHTTPHeaders: { blobContentType: fileType } }
         )
-        console.log(uploadBlobResponse.requestId)
-        this.getContainerBlobList()
+        if(uploadBlobResponse.requestId) {
+          console.log(`-----> ${blobName} upload success`);
+        }
+
       } catch (e) {
         console.log('[upload Fail] ->', fileName, '[Error Message]:', e.message)
       }
     })
   }
-  getFile(dir, cdnFileDir = '') {
+  /**
+   *
+   * 递归校验文件，获取文件路径
+   * @param dir 文件路径
+   * @param cdnDir 上传cdn的folder name
+   *
+   * */
+  getFile(dir, cdnDir="") {
     const fileList = getDirAllFile(dir)
     for (const file of fileList) {
       const filePath = path.resolve(dir, file)
@@ -87,23 +88,15 @@ class AzurePlugin {
         this.getFile(filePath, file)
       }
       if (checkFile(file)) {
-        this.putFileToAzure(
+        this.uploadFileToAzure(
           filePath,
           file,
-          cdnFileDir === '' ? '' : `/${cdnFileDir}`
+          cdnDir
         )
       }
     }
   }
-  async getContainerBlobList() {
-    try {
-      for await (const blob of this.blobClient.listBlobsFlat()) {
-        console.log('\t', blob.name)
-      }
-    } catch (e) {
-      console.log(e)
-    }
-  }
+
   apply(compiler) {
     compiler.hooks.afterEmit.tapAsync(
       {
