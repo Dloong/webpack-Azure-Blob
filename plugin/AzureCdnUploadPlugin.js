@@ -28,11 +28,11 @@ function getDirAllFile(dirPath) {
  *
  */
 function checkFile(fileName) {
-  const suffixList = Array.from(new Set(['.png', '.gif', '.jpg', '.css', '.js']))
+  const suffixList = Array.from(new Set(['.png', '.gif', '.jpg', '.js']))
   return suffixList.some((item) => fileName.includes(item))
 }
 
-class AzurePlugin {
+class AzureCdnUploadPlugin {
   constructor(options) {
     this.options = options
     this.blobClient = getContainnersClient(options)
@@ -98,16 +98,13 @@ class AzurePlugin {
   }
 
   apply(compiler) {
-    compiler.hooks.afterEmit.tapAsync(
-      {
-        name: 'CdnUploadPlugin',
-        context: true,
-      },
-      () => {
+    compiler.hooks.afterEmit.tapAsync('AzureCdnUploadPlugin',
+      (compilation, cb) => {
         this.getFile(this.options.dir)
+        cb()
       }
     )
   }
 }
 
-module.exports = AzurePlugin
+module.exports = AzureCdnUploadPlugin

@@ -1,5 +1,5 @@
 const path = require('path')
-const DemoPlugin = require('./plugin/pluginDemo.js')
+const AzureCdnUploadPlugin = require('./plugin/AzureCdnUploadPlugin.js')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
 const MiniCssExtractPlugin = require('mini-css-extract-plugin')
 const dotenv = require('dotenv')
@@ -44,7 +44,7 @@ module.exports = {
     new MiniCssExtractPlugin({
       filename: 'css/[name].[contenthash:8].css'
     }),
-    new DemoPlugin({
+    new AzureCdnUploadPlugin({
       connection: {
         connectionString: process.env.CONNECTION_STRING,
       },
