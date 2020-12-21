@@ -21,7 +21,7 @@
     "into-stream": "^6.0.0"
   },
   "author": "shilong.duan@gmail.com",
-  "license": "ISC",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/Dloong/webpack-Azure-Blob/issues"
   },
