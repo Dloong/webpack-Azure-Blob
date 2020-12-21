@@ -7,13 +7,13 @@ This is a webpack plugin that allows you upload static resource to an Azure stor
 Install the plugin with npm:
 
 ```
-npm install
+npm install AzureCdnUploadPlugin --save-dev
 ```
 
 or
 
 ```
-yarn add
+yarn add AzureCdnUploadPlugin
 ```
 
 ## Basic Usage
