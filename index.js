@@ -21,21 +21,21 @@ function getContainnersClient(options) {
 function getDirAllFile(dirPath) {
   return fs.readdirSync(dirPath)
 }
-/**
- * 文件上传白名单
- * @param fileName 文件名称
- * @returns {boolean} 是否为白名单路径
- *
- */
-function checkFile(fileName) {
-  const suffixList = Array.from(new Set(['.png', '.gif', '.jpg', '.js']))
-  return suffixList.some((item) => fileName.includes(item))
-}
 
 class AzureCdnUploadPlugin {
   constructor(options) {
     this.options = options
     this.blobClient = getContainnersClient(options)
+  }
+  /**
+   * 文件上传白名单
+   * @param fileName 文件名称
+   * @returns {boolean} 是否为白名单路径
+   *
+   */
+  checkFile(fileName) {
+    const suffixList = Array.from(new Set(['.png', '.gif', '.jpg', '.js', '.css']))
+    return suffixList.some((item) => fileName.includes(item))
   }
 
   /**
@@ -57,17 +57,15 @@ class AzureCdnUploadPlugin {
         return
       }
       try {
-        const blobName = cdnDir? `${cdnDir}/${fileName}`: fileName
+        const blobName = cdnDir ? `${cdnDir}/${fileName}` : fileName
         const fileType = mime.contentType(fileName)
         const blockBlobClient = this.blobClient.getBlockBlobClient(blobName)
-        const uploadBlobResponse = await blockBlobClient.uploadFile(
-          filepath,
-          { blobHTTPHeaders: { blobContentType: fileType } }
-        )
-        if(!uploadBlobResponse.requestId) {
-          console.log(`-----> ${blobName} upload failed`);
+        const uploadBlobResponse = await blockBlobClient.uploadFile(filepath, {
+          blobHTTPHeaders: { blobContentType: fileType },
+        })
+        if (!uploadBlobResponse.requestId) {
+          console.log(`-----> ${blobName} upload failed`)
         }
-
       } catch (e) {
         console.log('[upload Fail] ->', fileName, '[Error Message]:', e.message)
       }
@@ -80,27 +78,28 @@ class AzureCdnUploadPlugin {
    * @param cdnDir 上传cdn的folder name
    *
    * */
-  getFile(dir, cdnDir="") {
+  getFile(dir, cdnDir = '') {
     const fileList = getDirAllFile(dir)
     for (const file of fileList) {
       const filePath = path.resolve(dir, file)
       if (fs.lstatSync(filePath).isDirectory()) {
         this.getFile(filePath, file)
       }
-      if (checkFile(file)) {
-        this.uploadFileToAzure(
-          filePath,
-          file,
-          cdnDir
-        )
+      if (this.checkFile(file)) {
+        this.uploadFileToAzure(filePath, file, cdnDir)
       }
     }
   }
 
   apply(compiler) {
-    compiler.hooks.afterEmit.tapAsync('AzureCdnUploadPlugin',
+    compiler.hooks.afterEmit.tapAsync(
+      'AzureCdnUploadPlugin',
       (compilation, cb) => {
-        this.getFile(this.options.dir)
+        const outputOptions = compilation.outputOptions || compilation.options
+        const outputPath = path.normalize(
+          outputOptions.path || outputOptions.path.output
+        )
+        this.getFile(outputPath)
         cb()
       }
     )

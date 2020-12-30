@@ -100,7 +100,9 @@ class AzureCdnUploadPlugin {
   apply(compiler) {
     compiler.hooks.afterEmit.tapAsync('AzureCdnUploadPlugin',
       (compilation, cb) => {
-        this.getFile(this.options.dir)
+        const outputOptions = compilation.outputOptions || compilation.options;
+          const outputPath = path.normalize(outputOptions.path || outputOptions.path.output);
+        this.getFile(outputPath)
         cb()
       }
     )

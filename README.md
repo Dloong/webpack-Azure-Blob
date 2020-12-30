@@ -36,8 +36,7 @@ module.exports = {
         connectionString: process.env.CONNECTION_STRING,
       },
       accountName: process.env.ACCOUNTNAME,
-      containerName: process.env.CONTAINNERNAME,
-      dir: path.resolve(__dirname, './dist'),
+      containerName: process.env.CONTAINNERNAME
     }),
   ],
 }
@@ -50,7 +49,6 @@ The plugin allowed values are as follows:
 - connectionString: your Azure account connection string
 - accountName: Azure account name
 - containerName: Azure container name
-- dir: webpack output file path
 
 ## Notice:
 
